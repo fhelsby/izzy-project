@@ -1,0 +1,43 @@
+.topnav {
+  background-color: #ffffff;
+  overflow: hidden;
+  font-family: bold
+}
+
+.topnav a {
+  float: left;
+  color:  #ffffff;
+  text-allign: center;
+  padding: 10px 16px;
+  text-decoration: none;
+  font-size: 90px;
+}   
+
+.topnav a: hover {
+   background-color: #ffffff;
+   color: #beedee;
+}   
+
+.topnav a.active {
+   background-color: #ffffff;
+   color: white;
+}
+  
+
+
+html, body {
+  height: 100%;
+  width: 100%;
+}
+
+h1 {
+  color:#000000;
+  font-family: italic
+  background-color: whitesmoke;
+}
+
+p {
+  color: #000000;
+  font-family: bold, sans-serif;
+  background-color: white;
+}

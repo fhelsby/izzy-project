@@ -1,0 +1,35 @@
+{% include 'header.html'%}
+
+ <body>
+   <h1>Show Scores</h1>
+
+   <table style="width:75%">
+ <tr>
+   <th>question</th>
+   <th>Correct Answer</th>
+   <th>Your Answer</th>
+   <th>Correct Y/N</th>
+ </tr>
+{%if question%}
+     {%for pass in Question%}
+ <tr>
+   <td>{{pass[0][0]}}</td>
+   <td>{{pass[0][1]}}</td>
+{%for pass in answer%}
+
+   <td>{{pass}}</td>
+
+
+  {%endfor%}
+  {%endfor%}
+  {%endif%}
+
+   {%for pass in correct%}
+   <div>{{pass}}</div>
+
+   {%endfor%}
+
+
+
+ </tr>
+   </table>

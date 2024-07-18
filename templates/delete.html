@@ -1,0 +1,28 @@
+{% include 'header.html'%}
+<div id="test" class=thisisaclass>
+
+<table>
+  <thead>
+    <th>ID</th>
+    <th>Name</th>
+    <th>Email</th>
+  </thead>
+  {%for pass in passingdata%}
+  <tr>
+    <td>{{pass[0]}}</td>
+    <td>{{pass[1]}}</td>
+    <td>{{pass[2]}}</td>
+  </tr>
+  {%endfor%}
+</table>
+
+  <h1>Enter the id you want to delete and press submit</h1>
+  <form action = "https://replit.com/@2022-2024-CS/Final-Flask-Coursework-IzzyMorton1#templates/delete.html" method="POST">
+    <p>id</p>
+    <input type="id" id="id" name="id">
+    <input type="submit" value="submit" id="submit">
+
+</form>
+</div>
+{% include 'footer.html'%}
+  

@@ -1,0 +1,32 @@
+{% include 'header.html'%}
+
+ <body>
+   <h1>quiz</h1>
+
+  {% if count%}
+
+   <div > Question Number {{ count }} </div>
+  {%endif%}
+   <p>
+   </br>
+
+
+   <form method='POST' action="" enctype="multipart/form-data">
+
+   <p> question </p>
+
+
+   {%for pass in LoadQuestion1%}
+
+     <p> {{pass[0]}}</p>
+
+   {%endfor%}
+
+     <label id = "question">Your Answer:</label>
+     <input type="answer" id="answer" name="answer">
+     <input type="submit" value="Submit" id="submit">
+
+   </form>
+ </body>
+
+
