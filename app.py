@@ -1,15 +1,16 @@
-from flask import flask, render_template, request, url_for,redirect, session
-from flask_session import Session
+from flask import Flask, render_template, request, url_for,redirect,g, session, jsonify
+#from flask_session import Session
 from os import path
 import datetime
+from testdatabase import get_db_connection
 
 from array import *
 
 import random
 import sqlite3
-import jsonify
+#import jsonify
 
-app = flask(__name__)
+app = Flask(__name__)
 
 app.secret_key = 'any random string'
 db_locale = 'quizquestion.db'
@@ -17,105 +18,117 @@ user = {}
 
 app.config["Session_PERMENANT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
-Session(app)
+#Session(app)
 question = []
 answer = []
+
+def get_db():
+  if 'db' not in g:
+    g.db = get_db_connection()
+  return g.db
 
 if not path.exists(db_locale):
   db_locale = db_locale
   con = sqlite3.connect(db_locale)
-  command = con.cursor()
+  cursor = con.cursor()
 
-  command.execute("""CREATE TABLE IF NOT EXSISTS user("userID" INTEGER, "username" TEXT, "password" TEXT, "User Name" TEXT, "yeargroupcode"	INTEGER,
-	"newteacher"	TEXT PRIMARY KEY("UserID", AUTOINCREMENT)) ); """)
+  cursor.execute("""CREATE TABLE IF NOT EXISTS user (
+                 userID INTEGER PRIMARY KEY AUTOINCREMENT,
+                 username TEXT,
+                 password TEXT,
+                 yeargroupcode INTEGER,
+                 newteacher TEXT
+                 ); """)
   con.commit()
 
-  command.execute("""CREATE TABLE IF NOT EXSISTS answer("answerID" INTEGER, "answer" TEXT) PRIMARY KEY("answerID", AUTOINCREMENT) ); """)
+  cursor.execute("""CREATE TABLE IF NOT EXISTS answer (
+                 answerID INTEGER PRIMARY KEY AUTOINCREMENT,
+                 answer TEXT
+                 ); """)
   con.commit()
 
-  command.execute("""CREATE TABLE IF NOT EXSISTS teacher(
-	"teacherID"	INTEGER,
-	"yeargroup"	INTEGER,
-	"yeargroupID"	INTEGER,
-	PRIMARY KEY("teacherID")
-);""")
+  cursor.execute("""CREATE TABLE IF NOT EXISTS teacher (
+                 teacherID	INTEGER PRIMARY KEY,
+                 yeargroup	INTEGER,
+                 yeargroupID INTEGER
+                 );""")
   con.commit()
 
-  command.execute("""CREATE TABLE IF NOT EXSISTS quiz(
-	"quizID"	INTEGER,
-	"userID"	INTEGER,
-	"date"	TEXT,
-	PRIMARY KEY("quizID"));""")
+  cursor.execute("""CREATE TABLE IF NOT EXISTS quiz (
+                 quizID	INTEGER PRIMARY KEY,
+                 userID	INTEGER,
+                 date TEXT
+                 );""")
   con.commit()
 
-  command.execute("""CREATE TABLE IF NOT EXSISTS quizquestion(
-	"quizID"	INTEGER,
-	"questionID"	INTEGER,
-	"score"	INTEGER,
-	PRIMARY KEY("questionID","quizID")
-);""")
+  cursor.execute("""CREATE TABLE IF NOT EXISTS quizquestion (
+                 quizID	INTEGER,
+                 questionID	INTEGER,
+                 score INTEGER,
+                 PRIMARY KEY(questionID,quizID)
+                 );""")
   con.commit()
 
-  command.execute("""CREATE TABLE IF NOT EXSISTS question(
-	"questionID"	INTEGER,
-	"question"	TEXT,
-	"points"	BLOB,
-	"answerID"	INTEGER,
-	PRIMARY KEY("questionID" AUTOINCREMENT)
-);""")
+  cursor.execute("""CREATE TABLE IF NOT EXISTS question (
+                 questionID INTEGER PRIMARY KEY AUTOINCREMENT,
+                 question TEXT,
+                 points	BLOB,
+                 answerID INTEGER
+                 );""")
   con.commit()
+  con.close()
 
 @app.route('/', methods=['GET','POST'])
 def index():
-  con = sqlite3.connect(db_locale)
-  command = con.cursor()
-  command.execute("""SELECT username, password, userID FROM user""")
-  invaliduser = True
+  #con = sqlite3.connect(db_locale)
+  db = get_db()
+  command = db.cursor()
+  command.execute("""SELECT userID, username, password FROM user""")
   errormessage = None
 
-  for x in command.fetchall():
-    user1=str(x[0])
-    pass1=str(x[1])
-
-    
-    if request.method == 'POST':
-      if request.form['username'] == user1 and request.form['password'] == pass1:
-        test = request.form['username']
-        invaliduser = False
-        print(user1)
-        print(test)
-        con.close()
-        return render_template('AddUser.html')
-
-  if invaliduser == True:
+  if request.method == 'POST':
+    for row in command.fetchall():
+      user=str(row[1])
+      password=str(row[2])
+      print(user)
+      print(password)
+      if request.form['username'] == user and request.form['password'] == password:
+        #db.close() can't close connection when test database is used
+        session['firstname'] = user
+        return redirect(url_for('UserMenu'))
     errormessage = "Invalid Data, please try again"
     return render_template('index.html', errormessage = errormessage)
+  else:
     return render_template("index.html")
+  
 
 @app.route('/AddUser', methods=['GET', 'POST'])
 def AddUser():
   if request.method == "GET":
     return render_template('AddUser.html',)
   else:
-    userdetails = (request.form['User Name'], request.form['userID'], request.form['username'], request.form['password'])
+    userdetails = (request.form['userID'], request.form['username'], request.form['password'])
     insert(userdetails)
-  return redirect(url_for(Menu)
+    return redirect('/')
 
-def LoadData:
-  con = sqlite3.connect(db_locale)
-  command = con.cursor()
-  command.execute("""SELECT userID,User Name,username, password FROM user""")
+def LoadData():
+  #db = sqlite3.connect(db_locale)
+  db = get_db()
+  command = db.cursor()
+  command.execute("""SELECT userID,username, password FROM user""")
   data = command.fetchall()
   return data
 
 def insert(userdetails):
-  con = sqlite3.connect(db_locale)
-  command = con.cursor()
+  #con = sqlite3.connect(db_locale)
+  db = get_db()
+  command = db.cursor()
   print(userdetails)
-  sqlstring = """INSERT INTO user(User Name, username, password) VALUES (?,?,?,?)"""
+  sqlstring = """INSERT INTO user(userID, username, password) VALUES (?,?,?)"""
   command.execute(sqlstring, userdetails)
-  con.commit()
-  con.close()
+  print(f'Number of rows inserted: {command.rowcount}')
+  db.commit()
+  #db.close()
 
 @app.route('/update', methods=['GET', 'POST'])
 def update():
@@ -130,14 +143,15 @@ def update():
    return render_template('index.html')
 
 def LoadQuestion():
-  con = sqlite3.connect(db_locale)
-  command = con.cursor()
+  #db = sqlite3.connect(db_locale)
+  db = get_db()
+  command = db.cursor()
   command.execute("""SELECT COUNT(question) FROM question""")
   countquestions = command.fetchone()[0]
   print(countquestions)
 
   newquestion = random.randint(1,countquestions)
-  Session["questionID"] = newquestion
+  session["questionID"] = newquestion
   print("Ww" , newquestion)
   sqlstring = """SELECT question, answer.answer FROM question INNER JOIN answer on question.answerID where questionID = ?"""
   command.execute(sqlstring,newquestion)
@@ -146,53 +160,58 @@ def LoadQuestion():
   return data
 
 def GetGameID():
-  con = sqlite3.connect(db_locale)
-  command = con.cursor()
+  #db = sqlite3.connect(db_locale)
+  db = get_db()
+  command = db.cursor()
   command.execute("""SELECT COUNT(gameID) FROM game""")
   GetGameID = command.fetchone()[0]
   print(GetGameID)
   return GetGameID
 
 def InsertGameData(GetGameID):
-  con = sqlite3.connect(db_locale)
-  command = con.cursor()
+  #db = sqlite3.connect(db_locale)
+  db = get_db()
+  command = db.cursor()
   sqlstring = """INSERT INTO user(userID,username,password,User Name, yeargroupcode,newteacher) VALUES (?,?,?,?,?,?)"""
-  command.execute(sqlstring, GetGameID,Session.get("userID"),0)
-  con.commit()
-  con.close()
+  command.execute(sqlstring, GetGameID,session.get("userID"),0)
+  db.commit()
+  db.close()
 
 def CreateQuiz():
-  con=sqlite3.connect(db_locale)
-  command = con.cursor()
+  #db=sqlite3.connect(db_locale)
+  db = get_db()
+  command = db.cursor()
   TodaysDate = datetime.today().strftime('%d-%m-%y')
   sqlstring = """INSERT INTO quiz (quizID,userID,date) VALUES (?,?,?) """
-  QuizDetails = int(Session["userID"]), TodaysDate, 0
+  QuizDetails = int(session["userID"]), TodaysDate, 0
 
   command.execute(sqlstring,QuizDetails)
-  Session["GetGameID"] = command.fetchone[0]
+  session["GetGameID"] = command.fetchone[0]
 
-  con.commit()
-  con.close()
+  db.commit()
+  db.close()
 
 def CheckAnswer():
-  con = sqlite3.connect(db_locale)
-  command = con.cursor()
+  #db = sqlite3.connect(db_locale)
+  db = get_db()
+  command = db.cursor()
   command.execute ("""SELECT question, answer.answer, score FROM question INNER JOIN answer ON question.answerID = answer.answerID WHERE questionID = %d"""% Session.get("questionID"))
 
   for x in command.fetchall():
    if request.form['answer'] == x[1]:
-     sqlstring = """INSERT INTO link (gameID, questionID, myanswer, point) VALUES (?,?,?,?)""
-     QuestionAnswer = Session["GetGameID"], Session["questionID"], request.form['answer'], 0
+     sqlstring = """INSERT INTO link (gameID, questionID, myanswer, point) VALUES (?,?,?,?)"""
+     QuestionAnswer = session["GetGameID"], session["questionID"], request.form['answer'], 0
      command.execute(sqlstring, QuestionAnswer)
 
-     con.commit()
-     con.close()
+     db.commit()
+     db.close()
     
 def LoadUserDetails():
-  UserID1 = int(Session.get('UserID'))
-  con = sqlite3.connect(db_locale)
-  command = con.cursor()
-  sqlstring = """SELECT user.userID, user.UserName from user where user.userID = '%d'"""(UserID1)
+  UserID1 = int(session.get('UserID'))
+  #con = sqlite3.connect(db_locale)
+  db = get_db()
+  command = db.cursor()
+  sqlstring = """SELECT user.userID, user.UserName FROM user WHERE user.userID = '%d'""" % UserID1
   command.execute(sqlstring)
   data = command.fetchall()
   return data
@@ -205,10 +224,11 @@ def quiz():
     while count != 10:
       LoadQuestion1 = LoadQuestion()
   
-  return render_template('quiz.html', LoadQuestion1 = LoadQuestion1, count = str(Session.get("count")))
+  render_template('quiz.html', LoadQuestion1 = LoadQuestion1, count = str(session.get("count")))
 
-  con = sqlite3.connect(db_locale)
-  command = con.cursor()
+  #con = sqlite3.connect(db_locale)
+  db = get_db()
+  command = db.cursor()
 
   command.execute("""SELECT DISTINCT question.question, link.myanswer, answer.answer, link.points from quiz 
   INNER JOIN link ON quiz.quizID = link.quizID 
@@ -228,7 +248,7 @@ def quiz():
 
   command.execute("UPDATE ")
 
-  return render_template
+  #render_template
 
   
 
@@ -296,14 +316,15 @@ def delete():
 
 def deleteuserdata(deleteuserinfo):
   print(deleteuserinfo)
-  con = sqlite3.connect(db_locale)
-  command = con.cursor()
+  #con = sqlite3.connect(db_locale)
+  db = get_db()
+  command = db.cursor()
   sqlstring = """DELETE FROM user Where userID= """
   command.execute(sqlstring, deleteuserinfo)
-  con.commit()
-  con.close()
+  db.commit()
+  db.close()
 
-con = sqlite3.connect(db_locale)
+#con = sqlite3.connect(db_locale)
 
 if __name__ == "__main__":
   app.run(host='0.0.0.0' , port=random.randint(2000,9000))
